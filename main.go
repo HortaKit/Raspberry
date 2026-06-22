@@ -63,6 +63,9 @@ func main() {
 	opts.OnConnect = func(c mqtt.Client) {
 		fmt.Printf("Sistema conectado ao broker, ID: %s\n", DeviceID)
 		c.Subscribe(fmt.Sprintf("dispositivos/%s/comando", DeviceID), 1, nil)
+
+		telemetriaTopic := fmt.Sprintf("dispositivos/%s/telemetria", DeviceID)
+		c.Publish(telemetriaTopic, 1, false, []byte("ONLINE_INIT"))
 	}
 
 	mqttClient := mqtt.NewClient(opts)

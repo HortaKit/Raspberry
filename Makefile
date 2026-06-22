@@ -10,7 +10,7 @@ all: clean build
 build:
 	env CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
 	go build -ldflags="-s -w -extldflags '-static'" \
-	-o build/$(BINARY_NAME) main.go
+	-o build/$(BINARY_NAME) main.go history.go
 
 clean:
 	rm -rf build/

@@ -1,11 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"crypto/tls"
+	"encoding/binary"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -29,30 +28,15 @@ var handleCommand mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messag
 
 	if port != nil {
 		switch command {
+		case "REQ_HIST":
+			SendHistory(client, DeviceID)
 		case "CMD:PMP_1":
 			port.Write([]byte("CMD:PUMP_ON\n"))
-
 			fmt.Printf("Bomba ligada via MQTT\n")
 		case "CMD:PMP_0":
 			port.Write([]byte("CMD:PUMP_OFF\n"))
 			fmt.Printf("Bomba desligada via MQTT\n")
 		}
-	}
-}
-
-func connectSerial() serial.Port {
-	for {
-		mode := &serial.Mode{
-			BaudRate: 115200,
-		}
-
-		p, err := serial.Open(SerialPort, mode)
-		if err != nil {
-			time.Sleep(2 * time.Second)
-			continue
-		}
-
-		return p
 	}
 }
 
@@ -86,24 +70,81 @@ func main() {
 		log.Fatalf("Erro ao conectar ao broker: %v", token.Error())
 	}
 
-	port = connectSerial()
+	mode := &serial.Mode{
+		BaudRate: 115200,
+	}
+
+	port, err := serial.Open(SerialPort, mode)
+	if err != nil {
+		log.Fatalf("Erro ao abrir porta serial %s: %v", SerialPort, err)
+	}
 	defer port.Close()
+
+	ReadHistory()
+	StartHistoryScheduler(1 * time.Minute)
+	StartMqttHistoryScheduler(mqttClient, 2*time.Minute)
 
 	fmt.Printf("Sistema iniciado com sucesso!\n")
 
-	scanner := bufio.NewScanner(port)
+	const expectedBytes = 32 * 2
+	buf := make([]byte, expectedBytes)
+	vetMed := make([]uint16, 32)
 
-	for scanner.Scan() {
-		linha := scanner.Text()
-		linha = strings.TrimSpace(linha)
-		// fmt.Printf("Raw: %s\n", linha)
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 
-		if strings.Contains(linha, "D:") && strings.Contains(linha, ",R:") {
-			mqttClient.Publish(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), 1, false, linha)
+	for range ticker.C {
+		port.ResetInputBuffer()
+
+		_, err := port.Write([]byte("A"))
+		if err != nil {
+			log.Printf("Erro ao solicitar dados para STM: %v\n", err)
+			continue
 		}
-	}
 
-	if err := scanner.Err(); err != nil {
-		log.Printf("Erro ao ler dados da UART %s: %v", SerialPort, err)
+		bytesRead := 0
+		timeout := time.After(500 * time.Millisecond)
+		readFailed := false
+
+		for bytesRead < expectedBytes {
+			select {
+			case <-timeout:
+				log.Printf("Timeout ao ler dados da STM: %d/%d\n", bytesRead, expectedBytes)
+				readFailed = true
+			default:
+				n, err := port.Read(buf[bytesRead:])
+				if err != nil {
+					log.Printf("Erro ao ler UART: %v\n", err)
+					readFailed = true
+					break
+				}
+				if n > 0 {
+					bytesRead += n
+				}
+			}
+
+			if readFailed {
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+
+		if !readFailed && bytesRead == expectedBytes {
+			fmt.Printf("Recebidos %d bytes da STM\n", bytesRead)
+
+			for i := 0; i < 32; i++ {
+				vetMed[i] = binary.LittleEndian.Uint16(buf[i*2 : i*2+2])
+			}
+
+			for i := range 16 {
+				umidade := vetMed[i]
+				rele := vetMed[16+i]
+
+				mqqtFormat := fmt.Sprintf("D:%d,R:%d", umidade, rele)
+
+				SaveHistory(umidade, uint8(rele))
+				mqttClient.Publish(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), 1, false, []byte(mqqtFormat))
+			}
+		}
 	}
 }

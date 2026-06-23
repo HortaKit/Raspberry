@@ -28,7 +28,7 @@ var handleCommand mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messag
 
 	if port != nil {
 		switch command {
-		case "REQ_HIST":
+		case "CMD:REQ_HIST":
 			SendHistory(client, DeviceID)
 		case "CMD:PMP_1":
 			port.Write([]byte("CMD:PUMP_ON\n"))
@@ -89,9 +89,8 @@ func main() {
 
 	fmt.Printf("Sistema iniciado com sucesso!\n")
 
-	const expectedBytes = 32 * 2
+	const expectedBytes = 4
 	buf := make([]byte, expectedBytes)
-	vetMed := make([]uint16, 32)
 
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
@@ -133,21 +132,15 @@ func main() {
 		}
 
 		if !readFailed && bytesRead == expectedBytes {
-			fmt.Printf("Recebidos %d bytes da STM\n", bytesRead)
+			umidade := binary.LittleEndian.Uint16(buf[0:2])
+			rele := binary.LittleEndian.Uint16(buf[2:4])
 
-			for i := 0; i < 32; i++ {
-				vetMed[i] = binary.LittleEndian.Uint16(buf[i*2 : i*2+2])
-			}
+			fmt.Printf("Umidade: %d, Relé: %d\n", umidade, rele)
 
-			for i := range 16 {
-				umidade := vetMed[i]
-				rele := vetMed[16+i]
+			mqttFormat := fmt.Sprintf("D:%d,R:%d", umidade, rele)
 
-				mqqtFormat := fmt.Sprintf("D:%d,R:%d", umidade, rele)
-
-				SaveHistory(umidade, uint8(rele))
-				mqttClient.Publish(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), 1, false, []byte(mqqtFormat))
-			}
+			SaveHistory(umidade, uint8(rele))
+			mqttClient.Publish(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), 1, false, []byte(mqttFormat))
 		}
 	}
 }

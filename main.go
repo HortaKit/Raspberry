@@ -69,9 +69,17 @@ func main() {
 	}
 
 	mqttClient := mqtt.NewClient(opts)
-	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatalf("Erro ao conectar ao broker: %v", token.Error())
-	}
+
+	go func() {
+		for {
+			if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
+				log.Printf("Erro inicial MQTT: %v. Tentando novamente em 5s...", token.Error())
+				time.Sleep(5 * time.Second)
+			} else {
+				break
+			}
+		}
+	}()
 
 	mode := &serial.Mode{
 		BaudRate: 115200,
@@ -92,7 +100,7 @@ func main() {
 	const expectedBytes = 4
 	buf := make([]byte, expectedBytes)
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(20 * time.Minute)
 	defer ticker.Stop()
 
 	for range ticker.C {

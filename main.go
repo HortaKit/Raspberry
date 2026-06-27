@@ -30,12 +30,12 @@ var handleCommand mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messag
 		switch command {
 		case "CMD:REQ_HIST":
 			SendHistory(client, DeviceID)
-			// case "CMD:PMP_1":
-			// 	port.Write([]byte("CMD:PUMP_ON\n"))
-			// 	fmt.Printf("Bomba ligada via MQTT\n")
-			// case "CMD:PMP_0":
-			// 	port.Write([]byte("CMD:PUMP_OFF\n"))
-			// 	fmt.Printf("Bomba desligada via MQTT\n")
+		case "CMD:PMP_1":
+			port.Write([]byte("CMD:PUMP_ON\n"))
+			fmt.Printf("Bomba ligada via MQTT\n")
+		case "CMD:PMP_0":
+			port.Write([]byte("CMD:PUMP_OFF\n"))
+			fmt.Printf("Bomba desligada via MQTT\n")
 		}
 	}
 }

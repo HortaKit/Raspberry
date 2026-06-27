@@ -85,7 +85,8 @@ func main() {
 		BaudRate: 115200,
 	}
 
-	port, err := serial.Open(SerialPort, mode)
+	var err error
+	port, err = serial.Open(SerialPort, mode)
 	if err != nil {
 		log.Fatalf("Erro ao abrir porta serial %s: %v", SerialPort, err)
 	}
@@ -100,16 +101,13 @@ func main() {
 	const expectedBytes = 4
 	buf := make([]byte, expectedBytes)
 
-	ticker := time.NewTicker(33 * time.Minute)
-	defer ticker.Stop()
-
-	for range ticker.C {
+	executeRead := func() {
 		port.ResetInputBuffer()
 
 		_, err := port.Write([]byte("A"))
 		if err != nil {
 			log.Printf("Erro ao solicitar dados para STM: %v\n", err)
-			continue
+			return
 		}
 
 		bytesRead := 0
@@ -150,5 +148,16 @@ func main() {
 			SaveHistory(umidade, uint8(rele))
 			mqttClient.Publish(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), 1, false, []byte(mqttFormat))
 		}
+	}
+
+	time.Sleep(1 * time.Minute)
+
+	executeRead()
+
+	ticker := time.NewTicker(6 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		executeRead()
 	}
 }

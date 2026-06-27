@@ -3,7 +3,7 @@ BINARY_NAME=horta_kit
 GOOS=linux
 GOARCH=arm64
 
-.PHONY: all build clean help
+.PHONY: all build clean help update
 
 all: clean build
 
@@ -14,3 +14,11 @@ build:
 
 clean:
 	rm -rf build/
+
+update:
+	@echo "Buscando atualizações..."
+	git fetch --all
+	git reset --hard origin/main
+	@echo "Executando programa..."
+	chmod +x build/$(BINARY_NAME)
+	./build/$(BINARY_NAME)

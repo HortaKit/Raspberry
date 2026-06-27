@@ -150,8 +150,6 @@ func main() {
 		}
 	}
 
-	time.Sleep(1 * time.Minute)
-
 	executeRead()
 
 	ticker := time.NewTicker(6 * time.Minute)

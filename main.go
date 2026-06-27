@@ -150,11 +150,11 @@ func main() {
 		}
 	}
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(30 * time.Second)
 
 	executeRead()
 
-	ticker := time.NewTicker(6 * time.Minute)
+	ticker := time.NewTicker(2 * time.Minute)
 	defer ticker.Stop()
 
 	for range ticker.C {

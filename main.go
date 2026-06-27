@@ -18,7 +18,7 @@ const (
 	MQTTUser   = "joaosvc"
 	MQTTPass   = "qweqweROOT123"
 
-	SerialPort = "/tmp/ttyAMA0"
+	SerialPort = "/dev/serial0"
 )
 
 var port serial.Port

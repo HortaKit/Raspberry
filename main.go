@@ -53,7 +53,7 @@ func main() {
 
 	opts.SetTLSConfig(tlsConfig)
 
-	opts.SetWill(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), "OFFLINE", 1, false)
+	opts.SetWill(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), "OFFLINE", 1, true)
 
 	opts.SetDefaultPublishHandler(handleCommand)
 
@@ -65,7 +65,7 @@ func main() {
 		c.Subscribe(fmt.Sprintf("dispositivos/%s/comando", DeviceID), 1, nil)
 
 		telemetriaTopic := fmt.Sprintf("dispositivos/%s/telemetria", DeviceID)
-		c.Publish(telemetriaTopic, 1, false, []byte("ONLINE_INIT"))
+		c.Publish(telemetriaTopic, 1, true, []byte("ONLINE_INIT"))
 	}
 
 	mqttClient := mqtt.NewClient(opts)

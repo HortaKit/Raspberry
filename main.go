@@ -53,7 +53,7 @@ func main() {
 
 	opts.SetTLSConfig(tlsConfig)
 
-	opts.SetWill(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), "OFFLINE", 1, true)
+	opts.SetWill(fmt.Sprintf("dispositivos/%s/status", DeviceID), "OFFLINE", 1, true)
 
 	opts.SetDefaultPublishHandler(handleCommand)
 
@@ -64,7 +64,7 @@ func main() {
 		fmt.Printf("Sistema conectado ao broker, ID: %s\n", DeviceID)
 		c.Subscribe(fmt.Sprintf("dispositivos/%s/comando", DeviceID), 1, nil)
 
-		telemetriaTopic := fmt.Sprintf("dispositivos/%s/telemetria", DeviceID)
+		telemetriaTopic := fmt.Sprintf("dispositivos/%s/status", DeviceID)
 		c.Publish(telemetriaTopic, 1, true, []byte("ONLINE_INIT"))
 	}
 

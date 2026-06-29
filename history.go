@@ -113,6 +113,7 @@ func ReadHistory() {
 	}
 
 	reader := bytes.NewReader(raw)
+	validRecords := make([]RecordHistory, 0)
 
 	for i := 0; i < totalBytes/RecordSize; i++ {
 		var reg RecordHistory
@@ -122,8 +123,16 @@ func ReadHistory() {
 			fmt.Printf("Erro ao ler %d: %v\n", i, err)
 			break
 		}
-		bufferRead = append(bufferRead, reg)
+
+		if reg.Umidade > 3600 {
+			fmt.Printf("Removido do registro errado do historico: %d\n", reg.Umidade)
+			continue
+		}
+
+		validRecords = append(validRecords, reg)
 	}
+
+	bufferRead = validRecords
 }
 
 func SendHistory(client mqtt.Client, deviceID string) {

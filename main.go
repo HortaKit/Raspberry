@@ -141,6 +141,11 @@ func main() {
 			umidade := binary.LittleEndian.Uint16(buf[0:2])
 			rele := binary.LittleEndian.Uint16(buf[2:4])
 
+			if umidade > 3600 {
+				log.Printf("Leitura invalida de umidade: %d\n", umidade)
+				return
+			}
+
 			fmt.Printf("Umidade: %d, Relé: %d\n", umidade, rele)
 
 			mqttFormat := fmt.Sprintf("D:%d,R:%d", umidade, rele)
@@ -149,6 +154,8 @@ func main() {
 			mqttClient.Publish(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), 1, false, []byte(mqttFormat))
 		}
 	}
+
+	SendHistory(mqttClient, DeviceID)
 
 	ticker := time.NewTicker(2 * time.Minute)
 	defer ticker.Stop()

@@ -66,6 +66,8 @@ func main() {
 
 		telemetriaTopic := fmt.Sprintf("dispositivos/%s/status", DeviceID)
 		c.Publish(telemetriaTopic, 1, true, []byte("ONLINE_INIT"))
+
+		SendHistory(c, DeviceID)
 	}
 
 	mqttClient := mqtt.NewClient(opts)
@@ -154,8 +156,6 @@ func main() {
 			mqttClient.Publish(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), 1, false, []byte(mqttFormat))
 		}
 	}
-
-	SendHistory(mqttClient, DeviceID)
 
 	ticker := time.NewTicker(2 * time.Minute)
 	defer ticker.Stop()

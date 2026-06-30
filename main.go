@@ -65,8 +65,12 @@ func main() {
 		c.Subscribe(fmt.Sprintf("dispositivos/%s/comando", DeviceID), 1, nil)
 
 		telemetriaTopic := fmt.Sprintf("dispositivos/%s/status", DeviceID)
-		c.Publish(telemetriaTopic, 1, true, []byte("ONLINE_INIT"))
+		token := c.Publish(telemetriaTopic, 1, true, []byte("ONLINE_INIT"))
+		token.Wait()
 
+		if token.Error() != nil {
+			log.Printf("Erro ao publicar status: %v\n", token.Error())
+		}
 		SendHistory(c, DeviceID)
 	}
 
@@ -152,7 +156,13 @@ func main() {
 
 			mqttFormat := fmt.Sprintf("D:%d,R:%d", umidade, rele)
 
-			mqttClient.Publish(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), 1, true, []byte(mqttFormat))
+			token := mqttClient.Publish(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), 1, true, []byte(mqttFormat))
+			token.Wait()
+
+			if token.Error() != nil {
+				log.Printf("Erro ao publicar telemetria: %v\n", token.Error())
+			}
+
 			SaveHistory(umidade, uint8(rele))
 			SendHistory(mqttClient, DeviceID)
 		}

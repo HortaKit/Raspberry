@@ -152,8 +152,9 @@ func main() {
 
 			mqttFormat := fmt.Sprintf("D:%d,R:%d", umidade, rele)
 
+			mqttClient.Publish(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), 1, true, []byte(mqttFormat))
 			SaveHistory(umidade, uint8(rele))
-			mqttClient.Publish(fmt.Sprintf("dispositivos/%s/telemetria", DeviceID), 1, false, []byte(mqttFormat))
+			SendHistory(mqttClient, DeviceID)
 		}
 	}
 
